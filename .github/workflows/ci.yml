@@ -1,8 +1,11 @@
-name: CI Workflow
+name: CI/CD Workflow
 
 on:
   push:
     branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -31,3 +34,30 @@ jobs:
       - name: Check HTML structure
         run: |
           python -c "from html.parser import HTMLParser; from pathlib import Path; p=HTMLParser(); p.feed(Path('index.html').read_text(encoding='utf-8')); print('HTML check passed')"
+
+      - name: Prepare website
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp README.md _site/README.md
+
+      - name: Upload website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
